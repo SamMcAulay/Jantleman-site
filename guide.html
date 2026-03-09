@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Jantleman — Command Guide</title>
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <style>
+    .guide-layout { max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .guide-header { text-align: center; margin-bottom: 52px; }
+    .guide-header .shield { font-size: 2.6rem; display: block; margin-bottom: 14px; }
+    .guide-header h1 { font-family: var(--font-brand); font-size: 2rem; letter-spacing: 0.12em; margin-bottom: 8px; }
+    .guide-header p { color: var(--text-2); font-size: 0.92rem; max-width: 500px; margin: 0 auto; }
+
+    .guide-nav {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 40px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 6px;
+    }
+    .guide-nav a {
+      color: var(--text-2); text-decoration: none; font-size: 0.8rem; font-weight: 600;
+      padding: 6px 14px; border-radius: var(--radius-sm);
+      transition: background 0.12s, color 0.12s;
+    }
+    .guide-nav a:hover { background: var(--surface-2); color: var(--text); }
+
+    .guide-section { margin-bottom: 48px; }
+    .guide-section-title {
+      font-family: var(--font-brand); font-size: 1.1rem; letter-spacing: 0.08em;
+      color: var(--accent-bright); margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .guide-section-title .sec-icon { font-size: 1.2rem; }
+
+    .cmd-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 10px; overflow: hidden;
+    }
+    .cmd-header {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 12px 16px; cursor: pointer;
+      transition: background 0.1s;
+    }
+    .cmd-header:hover { background: var(--surface-2); }
+    .cmd-name {
+      font-family: var(--font-mono); font-size: 0.92rem;
+      color: var(--accent-bright); font-weight: 600; flex-shrink: 0;
+    }
+    .cmd-summary { font-size: 0.82rem; color: var(--text-2); flex: 1; }
+    .cmd-chevron { font-size: 0.72rem; color: var(--text-3); margin-left: auto; flex-shrink: 0; transition: transform 0.15s; }
+    .cmd-card.open .cmd-chevron { transform: rotate(180deg); }
+
+    .cmd-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+    .cmd-card.open .cmd-body { display: block; }
+
+    .cmd-desc { font-size: 0.85rem; color: var(--text); margin: 12px 0 14px; line-height: 1.6; }
+
+    .cmd-options { margin-top: 10px; }
+    .cmd-options-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); font-weight: 700; margin-bottom: 8px; }
+    .cmd-option { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; font-size: 0.82rem; }
+    .cmd-option-name { font-family: var(--font-mono); color: var(--accent); min-width: 130px; flex-shrink: 0; }
+    .cmd-option-req {
+      font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; padding: 1px 6px;
+      border-radius: 4px; flex-shrink: 0;
+    }
+    .req { background: rgba(201,150,63,0.15); color: var(--accent-bright); border: 1px solid rgba(201,150,63,0.3); }
+    .opt { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
+    .cmd-option-desc { color: var(--text-2); }
+
+    .cmd-perm {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 4px 10px; font-size: 0.75rem; color: var(--text-2);
+    }
+    .cmd-perm-icon { font-size: 0.85rem; }
+
+    .example-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px; margin-top: 12px;
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-2);
+    }
+    .example-block .ex-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 6px; }
+    .example-block .ex-cmd { color: var(--accent-bright); }
+
+    .info-box {
+      background: var(--accent-dim); border: 1px solid var(--accent-line);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 28px;
+      font-size: 0.84rem; color: var(--text); line-height: 1.6;
+    }
+    .info-box strong { color: var(--accent-bright); }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--text-2); text-decoration: none; font-size: 0.82rem;
+      margin-bottom: 32px; transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent-bright); }
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+
+  <div class="guide-layout">
+    <a href="/dashboard.html" class="back-link">← Back to Dashboard</a>
+
+    <div class="guide-header">
+      <span class="shield">🛡️</span>
+      <h1>COMMAND GUIDE</h1>
+      <p>Complete reference for all Jantleman slash commands. All commands use Discord's <code>/</code> slash command system.</p>
+    </div>
+
+    <nav class="guide-nav">
+      <a href="#reputation">⭐ Reputation</a>
+      <a href="#moderation">🔨 Moderation</a>
+      <a href="#watchlist">🔔 Watchlist</a>
+      <a href="#settings">⚙️ Settings</a>
+      <a href="#info">ℹ️ Info</a>
+    </nav>
+
+    <div class="info-box">
+      <strong>How it works:</strong> Jantleman monitors your forum channels for new posts. When someone creates a thread, the bot automatically looks up their reputation history and posts a summary embed — helping your community make informed decisions before engaging.
+    </div>
+
+    <!-- ── Reputation ─────────────────────────────────── -->
+    <div class="guide-section" id="reputation">
+      <div class="guide-section-title"><span class="sec-icon">⭐</span> Reputation</div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/review</span>
+          <span class="cmd-summary">Leave a star rating and comment for a user</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Submit a reputation review for another member. Reviews are permanent and visible to anyone who looks up that user. Each review includes a star rating (1–5), an optional comment, and optional proof (screenshot URL).</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The Discord member to review.</span>
+            </div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">stars</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">Rating from 1 to 5.</span>
+            </div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">comment</span>
+              <span class="cmd-option-req opt">Optional</span>
+              <span class="cmd-option-desc">A short description of your experience.</span>
+            </div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">proof</span>
+              <span class="cmd-option-req opt">Optional</span>
+              <span class="cmd-option-desc">URL to a screenshot or evidence of the transaction.</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/review user:@Username stars:5 comment:Fast and reliable seller. proof:https://i.imgur.com/...</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/profile</span>
+          <span class="cmd-summary">View a user's reputation score and review history</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Displays a member's full reputation card — their average star rating, total number of reviews, and a list of recent reviews with comments and proof links.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req opt">Optional</span>
+              <span class="cmd-option-desc">The member to look up. Defaults to yourself.</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/profile user:@Username</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/leaderboard</span>
+          <span class="cmd-summary">Show the top-rated members in this server</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Displays the top 10 members ranked by average star rating (minimum 3 reviews required to appear).</p>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Moderation ─────────────────────────────────── -->
+    <div class="guide-section" id="moderation">
+      <div class="guide-section-title"><span class="sec-icon">🔨</span> Moderation</div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/blacklist add</span>
+          <span class="cmd-summary">Prevent a user from posting in monitored channels</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Adds a member to the blacklist. Any thread they create in a monitored forum channel will be automatically deleted and they'll receive a DM explaining why. The blacklist is global across all monitored channels in your server.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The member to blacklist.</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/blacklist add user:@Username</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/blacklist remove</span>
+          <span class="cmd-summary">Remove a user from the blacklist</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Restores posting access for a previously blacklisted member.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The member to unblacklist.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/limit set</span>
+          <span class="cmd-summary">Set a posting cooldown for a specific user</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Restricts a member to posting once per N hours in monitored channels. If they try to post before the cooldown expires, their thread is deleted and they receive a DM with the remaining wait time.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The member to apply a limit to.</span>
+            </div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">hours</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">Number of hours between allowed posts (minimum 1).</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/limit set user:@Username hours:24</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/limit remove</span>
+          <span class="cmd-summary">Remove a posting cooldown from a user</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Removes any active posting limit for the specified member, restoring normal posting access.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The member to remove the limit from.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/namehistory</span>
+          <span class="cmd-summary">View a member's recent display name changes</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Shows the last 10 display name changes for a member, with timestamps. Useful for identifying users who change their name frequently to avoid recognition. Only tracked if identity tracking is enabled in your server settings.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">user</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The member to look up.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Watchlist ───────────────────────────────────── -->
+    <div class="guide-section" id="watchlist">
+      <div class="guide-section-title"><span class="sec-icon">🔔</span> Watchlist</div>
+
+      <div class="info-box" style="margin-bottom:16px">
+        The watchlist lets you track keywords. When a new thread title or body matches one of your keywords, you'll receive a DM alert linking to the thread.
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/watchlist add</span>
+          <span class="cmd-summary">Add a keyword to your personal watchlist</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Adds a keyword or phrase to your watchlist. You'll be DMed whenever a new thread in a monitored channel contains this word. Matching is case-insensitive.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">keyword</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The keyword or phrase to watch for.</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/watchlist add keyword:nvidia rtx 4090</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/watchlist remove</span>
+          <span class="cmd-summary">Remove a keyword from your watchlist</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Stops alerting you for the specified keyword.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">keyword</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The keyword to remove.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/watchlist list</span>
+          <span class="cmd-summary">View your active watchlist keywords</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Shows all keywords currently on your personal watchlist.</p>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Settings ───────────────────────────────────── -->
+    <div class="guide-section" id="settings">
+      <div class="guide-section-title"><span class="sec-icon">⚙️</span> Settings</div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/monitor add</span>
+          <span class="cmd-summary">Add a forum channel for Jantleman to monitor</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Tells the bot to watch a specific forum channel. When a new thread is created there, the bot will automatically post a reputation embed for the thread owner.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">channel</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The forum channel to monitor. Must be a Forum Channel type.</span>
+            </div>
+          </div>
+          <div class="example-block">
+            <div class="ex-label">Example</div>
+            <div class="ex-cmd">/monitor add channel:#selling</div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/monitor remove</span>
+          <span class="cmd-summary">Stop monitoring a forum channel</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Removes a channel from the monitored list. The bot will no longer post reputation embeds for new threads in that channel.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">channel</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc">The forum channel to stop monitoring.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/settings tracking</span>
+          <span class="cmd-summary">Toggle identity change tracking on or off</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Controls whether the bot tracks display name changes for members. When enabled, users who change their name frequently will trigger a warning in the reputation embed. Useful for detecting scammers who rename to avoid detection.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">enabled</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc"><code>true</code> to enable, <code>false</code> to disable.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/settings proof</span>
+          <span class="cmd-summary">Configure the proof requirement for reviews</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Sets how proof (screenshot URL) is handled when members submit reviews.</p>
+          <div class="cmd-options">
+            <div class="cmd-options-title">Options</div>
+            <div class="cmd-option">
+              <span class="cmd-option-name">mode</span>
+              <span class="cmd-option-req req">Required</span>
+              <span class="cmd-option-desc"><code>required</code> — proof URL must be provided · <code>optional</code> — proof is accepted but not enforced · <code>off</code> — proof field is hidden.</span>
+            </div>
+          </div>
+          <span class="cmd-perm"><span class="cmd-perm-icon">🔧</span> Manage Server</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Info ───────────────────────────────────────── -->
+    <div class="guide-section" id="info">
+      <div class="guide-section-title"><span class="sec-icon">ℹ️</span> Info</div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/help</span>
+          <span class="cmd-summary">Get a quick overview of all commands</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Posts an embed listing all available commands and a link to this guide.</p>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <span class="cmd-name">/ping</span>
+          <span class="cmd-summary">Check if the bot is online and responsive</span>
+          <span class="cmd-chevron">▼</span>
+        </div>
+        <div class="cmd-body">
+          <p class="cmd-desc">Returns the bot's current websocket latency in milliseconds.</p>
+          <span class="cmd-perm"><span class="cmd-perm-icon">👤</span> Any member</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/config.js?v=1"></script>
+  <script>
+    // Starfield
+    (function () {
+      const c = document.getElementById("starfield");
+      const ctx = c.getContext("2d");
+      let W, H, stars;
+      function resize() {
+        W = c.width = window.innerWidth;
+        H = c.height = window.innerHeight;
+        stars = Array.from({ length: 90 }, () => ({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 1.1 + 0.2, a: Math.random() * 0.4 + 0.05,
+          dx: (Math.random() - 0.5) * 0.15, dy: (Math.random() - 0.5) * 0.15,
+        }));
+      }
+      resize();
+      window.addEventListener("resize", resize);
+      (function draw() {
+        ctx.clearRect(0, 0, W, H);
+        for (const s of stars) {
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(220,180,100,${s.a})`; ctx.fill();
+          s.x = (s.x + s.dx + W) % W; s.y = (s.y + s.dy + H) % H;
+        }
+        requestAnimationFrame(draw);
+      })();
+    })();
+
+    // Accordion
+    document.querySelectorAll(".cmd-header").forEach(header => {
+      header.addEventListener("click", () => {
+        const card = header.closest(".cmd-card");
+        const isOpen = card.classList.contains("open");
+        document.querySelectorAll(".cmd-card.open").forEach(c => c.classList.remove("open"));
+        if (!isOpen) card.classList.add("open");
+      });
+    });
+
+    // Smooth scroll for nav links
+    document.querySelectorAll(".guide-nav a").forEach(a => {
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const target = document.getElementById(a.getAttribute("href").slice(1));
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  </script>
+</body>
+</html>

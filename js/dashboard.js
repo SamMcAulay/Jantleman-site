@@ -18,6 +18,13 @@ async function init() {
   document.getElementById("invite-btn").href = JANTLEMAN_INVITE;
   document.getElementById("invite-hero-btn").href = JANTLEMAN_INVITE;
 
+  // Show admin link for admin users
+  const payload = decodePayload(getToken());
+  if (payload && payload.is_admin) {
+    const adminLink = document.getElementById("admin-link");
+    if (adminLink) adminLink.style.display = "";
+  }
+
   setupTabs();
   setupSaveButton();
   setupLogout();

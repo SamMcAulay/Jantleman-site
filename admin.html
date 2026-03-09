@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Jantleman — Admin</title>
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <style>
+    .admin-layout { display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar */
+    .admin-sidebar {
+      width: 260px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .sidebar-brand-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 18px 16px 12px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-brand-row .bolt { font-size: 1.1rem; }
+    .sidebar-brand-row .name { font-family: var(--font-brand); font-size: 1.3rem; letter-spacing: 0.1em; }
+    .admin-badge {
+      background: rgba(201,150,63,0.15); border: 1px solid rgba(201,150,63,0.35);
+      color: var(--accent); font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
+    }
+    .admin-nav { padding: 8px 8px 4px; border-bottom: 1px solid var(--border); }
+    .admin-nav-label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-3); padding: 4px 8px 6px;
+    }
+    .admin-nav-btn {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      background: none; border: none; border-radius: var(--radius);
+      color: var(--text-2); font-family: var(--font-ui); font-size: 0.83rem;
+      font-weight: 500; padding: 7px 10px; cursor: pointer;
+      transition: background 0.12s, color 0.12s; text-align: left;
+    }
+    .admin-nav-btn:hover { background: var(--surface-2); color: var(--text); }
+    .admin-nav-btn.active { background: var(--accent-dim); color: var(--accent-bright); }
+    .admin-nav-btn .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+
+    /* Guild list section */
+    .guild-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .guild-section-header { padding: 8px 10px 4px; }
+    .guild-search {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-family: var(--font-ui);
+      font-size: 0.8rem; padding: 6px 10px; outline: none; transition: border-color 0.15s;
+    }
+    .guild-search:focus { border-color: var(--accent); }
+    .guild-search::placeholder { color: var(--text-3); }
+    .guild-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .guild-list::-webkit-scrollbar { width: 4px; }
+    .guild-list::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+    .guild-item {
+      display: flex; align-items: center; gap: 9px; padding: 7px 12px;
+      cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent;
+    }
+    .guild-item:hover { background: var(--surface-2); }
+    .guild-item.active { background: var(--accent-dim); border-left-color: var(--accent); }
+    .g-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .g-icon-placeholder {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--surface-3); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; color: var(--text-2); flex-shrink: 0;
+    }
+    .g-info { flex: 1; min-width: 0; }
+    .g-name { font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .g-meta { font-size: 0.68rem; color: var(--text-2); margin-top: 1px; }
+
+    .sidebar-footer {
+      padding: 10px 12px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: center;
+    }
+    .btn-sm-outline {
+      background: transparent; border: 1px solid var(--border); color: var(--text-2);
+      border-radius: var(--radius); padding: 5px 10px; font-size: 0.76rem;
+      font-family: var(--font-ui); cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-sm-outline:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* Main panel */
+    .admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+    .admin-header {
+      display: flex; align-items: center; gap: 14px; padding: 14px 28px;
+      border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+    }
+    .admin-header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
+    .admin-body { flex: 1; overflow-y: auto; padding: 28px; }
+    .admin-body::-webkit-scrollbar { width: 6px; }
+    .admin-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+    /* Shared components */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 60vh; gap: 10px; color: var(--text-2);
+    }
+    .empty-state .icon { font-size: 2.5rem; }
+    .empty-state p { font-size: 0.88rem; }
+
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+    .stat-card-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-2); font-weight: 600; }
+    .stat-card-value { font-size: 1.3rem; font-family: var(--font-brand); letter-spacing: 0.04em; margin-top: 4px; color: var(--text); }
+    .stat-card-value.good { color: var(--success); }
+    .stat-card-value.warn { color: var(--warn); }
+    .stat-card-value.accent { color: var(--accent-bright); }
+
+    .sec-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-2); margin-bottom: 10px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 0.88rem; font-weight: 600; }
+    .card-body { padding: 16px; }
+
+    /* Detail tabs */
+    .detail-tabs { display: flex; gap: 2px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; width: fit-content; }
+    .detail-tab-btn {
+      background: none; border: none; border-radius: var(--radius-sm);
+      color: var(--text-2); font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600;
+      padding: 6px 14px; cursor: pointer; transition: background 0.12s, color 0.12s;
+    }
+    .detail-tab-btn.active { background: var(--accent-dim); color: var(--accent-bright); }
+    .detail-panel { display: none; }
+    .detail-panel.active { display: block; }
+
+    /* Table */
+    .data-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .data-table th { background: var(--surface-2); color: var(--text-2); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--surface-2); }
+    .data-table .empty-row td { text-align: center; color: var(--text-2); padding: 24px; }
+    .user-cell { display: flex; align-items: center; gap: 9px; }
+    .u-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+    .u-avatar-ph { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 700; color: var(--text-2); flex-shrink: 0; }
+    .u-name { font-weight: 500; }
+    .u-id { font-size: 0.68rem; color: var(--text-2); font-family: var(--font-mono); }
+    .mono { font-family: var(--font-mono); color: var(--accent-bright); }
+
+    /* Buttons */
+    .btn-primary {
+      background: var(--accent-dim); border: 1px solid var(--accent-line);
+      color: var(--accent-bright); border-radius: var(--radius); padding: 7px 16px;
+      font-size: 0.82rem; font-family: var(--font-ui); font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: rgba(201,150,63,0.22); }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; }
+    .btn-danger {
+      background: var(--danger-dim); border: 1px solid rgba(248,113,113,0.25);
+      color: var(--danger); border-radius: var(--radius); padding: 7px 16px;
+      font-size: 0.82rem; font-family: var(--font-ui); font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-danger:hover { background: rgba(248,113,113,0.2); }
+    .btn-danger:disabled { opacity: 0.4; cursor: default; }
+    .btn-xs { padding: 3px 9px; font-size: 0.74rem; border-radius: var(--radius-sm); }
+
+    /* Form */
+    .form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-2); }
+    .form-input {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-family: var(--font-ui);
+      font-size: 0.83rem; padding: 7px 10px; outline: none; transition: border-color 0.15s; width: 180px;
+    }
+    .form-input:focus { border-color: var(--accent); }
+
+    /* User lookup */
+    .lookup-user-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .lookup-avatar { width: 52px; height: 52px; border-radius: 50%; }
+    .lookup-name { font-size: 1.1rem; font-weight: 700; }
+    .lookup-id { font-size: 0.75rem; color: var(--text-2); font-family: var(--font-mono); }
+
+    /* Guild detail header */
+    .detail-guild-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .detail-guild-header .g-icon, .detail-guild-header .g-icon-placeholder { width: 48px; height: 48px; font-size: 1rem; }
+    .detail-guild-header h2 { font-size: 1.2rem; font-weight: 700; }
+    .detail-guild-header .meta { font-size: 0.78rem; color: var(--text-2); margin-top: 2px; }
+
+    /* Audit action badge */
+    .audit-action {
+      display: inline-block; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 4px; font-family: var(--font-mono); font-size: 0.72rem;
+      padding: 1px 7px; color: var(--accent-bright);
+    }
+
+    /* Star rating */
+    .stars { color: var(--accent-bright); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <canvas id="starfield"></canvas>
+
+  <div class="admin-layout">
+
+    <!-- ── Sidebar ────────────────────────────────────── -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand-row">
+        <span class="bolt">🛡️</span>
+        <span class="name">JANTLEMAN</span>
+        <span class="admin-badge">ADMIN</span>
+      </div>
+
+      <nav class="admin-nav">
+        <div class="admin-nav-label">Views</div>
+        <button class="admin-nav-btn active" data-view="guilds">
+          <span class="nav-icon">🖥️</span> Guilds
+        </button>
+        <button class="admin-nav-btn" data-view="health">
+          <span class="nav-icon">❤️</span> Health &amp; Stats
+        </button>
+        <button class="admin-nav-btn" data-view="lookup">
+          <span class="nav-icon">🔍</span> User Lookup
+        </button>
+        <button class="admin-nav-btn" data-view="audit">
+          <span class="nav-icon">📋</span> Audit Log
+        </button>
+      </nav>
+
+      <div class="guild-section" id="guild-section">
+        <div class="guild-section-header">
+          <input type="text" id="guild-search" class="guild-search" placeholder="Search servers…">
+        </div>
+        <div id="guild-list" class="guild-list">
+          <div style="padding:20px 14px;color:var(--text-2);font-size:0.8rem;">Loading…</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="btn-sm-outline">↩ Log out</button>
+        <a href="/dashboard" style="font-size:0.75rem;color:var(--text-2);text-decoration:none;margin-left:auto;">Dashboard →</a>
+      </div>
+    </aside>
+
+    <!-- ── Main ──────────────────────────────────────── -->
+    <main class="admin-main">
+      <header class="admin-header">
+        <h1 id="main-heading">Admin Dashboard</h1>
+      </header>
+      <div class="admin-body" id="admin-body">
+        <div class="empty-state">
+          <span class="icon">🛡️</span>
+          <p>Select a server or view from the sidebar.</p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="js/config.js?v=1"></script>
+  <script src="js/auth.js?v=1"></script>
+  <script src="js/admin.js?v=1"></script>
+</body>
+</html>
