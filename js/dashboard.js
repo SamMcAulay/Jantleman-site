@@ -136,18 +136,20 @@ async function loadGuildData(guildId) {
 
   showLoading(true);
   try {
-    const [settings, channels, blacklist, limits, members] = await Promise.all([
+    const [settings, channels, blacklist, limits, members, reviewbans] = await Promise.all([
       api.getSettings(guildId),
       api.getChannels(guildId),
       api.getBlacklist(guildId),
       api.getLimits(guildId),
       api.getMembers(guildId),
+      api.getReviewBans(guildId),
     ]);
     currentSettings = settings;
     renderSettingsTab(settings);
     renderChannelsTab(channels);
     renderBlacklistTab(blacklist);
     renderLimitsTab(limits);
+    renderReviewBansTab(reviewbans);
     renderMembersTab(members);
   } catch (err) {
     console.error("Failed to load data:", err);
@@ -170,12 +172,18 @@ async function saveSettings() {
   btn.textContent = "Saving…";
 
   try {
-    const trackToggle = document.getElementById("setting-track-identity");
-    const proofSelect = document.getElementById("setting-proof-req");
+    const v = id => document.getElementById(id);
+    const globalLimitVal = v("setting-global-limit")?.value?.trim();
 
     await api.saveSettings(currentGuildId, {
-      track_identity: trackToggle ? trackToggle.checked : true,
-      proof_req: proofSelect ? proofSelect.value : "required",
+      track_identity:          v("setting-track-identity")?.checked ?? true,
+      proof_req:               v("setting-proof-req")?.value ?? "required",
+      min_reviews:             parseInt(v("setting-min-reviews")?.value ?? "1", 10),
+      global_post_limit_hours: globalLimitVal ? parseInt(globalLimitVal, 10) : null,
+      auto_delete_new:         v("setting-auto-delete")?.checked ?? false,
+      alert_channel_id:        v("setting-alert-ch")?.value?.trim() || null,
+      verified_role_id:        v("setting-verified-role")?.value?.trim() || null,
+      audit_role_id:           v("setting-audit-role")?.value?.trim() || null,
     });
 
     isDirty = false;
@@ -195,25 +203,31 @@ async function saveSettings() {
 
 // ── Settings Tab ───────────────────────────────────────
 
-function renderSettingsTab(settings) {
+function renderSettingsTab(s) {
   const container = document.getElementById("tab-settings");
-  const trackOn = settings.track_identity !== false;
-  const proof = settings.proof_req || "required";
+  const trackOn      = s.track_identity !== false;
+  const proof        = s.proof_req || "required";
+  const autoDelete   = s.auto_delete_new === true;
+  const minReviews   = s.min_reviews ?? 1;
+  const globalLimit  = s.global_post_limit_hours ?? "";
+  const verifiedRole = s.verified_role_id ?? "";
+  const auditRole    = s.audit_role_id ?? "";
+  const alertCh      = s.alert_channel_id ?? "";
 
   container.innerHTML = `
     <p class="tab-desc">Configure server-wide behaviour for The Jantleman.</p>
     <div class="settings-fields">
-      <h3 class="section-title"><span class="section-pip"></span>Identity & Verification</h3>
+
+      <!-- ── Section 1: Identity & Reviews ── -->
+      <h3 class="section-title"><span class="section-pip"></span>Identity &amp; Reviews</h3>
 
       <div class="setting-row">
         <div class="setting-info">
           <div class="setting-label">Identity Tracking</div>
-          <div class="setting-desc">Alert when a user has changed their display name multiple times in the past 7 days before creating a thread.</div>
+          <div class="setting-desc">Flag users who have changed their display name multiple times in the past 7 days.</div>
         </div>
-        <label class="toggle-wrap" title="Toggle identity tracking">
-          <div class="tc-switch ${trackOn ? "is-on" : ""}" id="track-switch">
-            <span class="tc-knob"></span>
-          </div>
+        <label class="toggle-wrap">
+          <div class="tc-switch ${trackOn ? "is-on" : ""}" id="track-switch"><span class="tc-knob"></span></div>
           <input type="checkbox" id="setting-track-identity" ${trackOn ? "checked" : ""} hidden>
         </label>
       </div>
@@ -221,27 +235,104 @@ function renderSettingsTab(settings) {
       <div class="setting-row">
         <div class="setting-info">
           <div class="setting-label">Proof Requirement</div>
-          <div class="setting-desc">Set whether review vouches require a screenshot attachment.</div>
+          <div class="setting-desc">Whether review vouches require a screenshot or evidence link.</div>
         </div>
         <select class="setting-select" id="setting-proof-req">
           <option value="required" ${proof === "required" ? "selected" : ""}>Required (Strict)</option>
           <option value="optional" ${proof === "optional" ? "selected" : ""}>Optional (Flexible)</option>
-          <option value="off" ${proof === "off" ? "selected" : ""}>Off (No Screenshots)</option>
+          <option value="off"      ${proof === "off"      ? "selected" : ""}>Off (No Screenshots)</option>
         </select>
       </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Minimum Reviews to be "Established"</div>
+          <div class="setting-desc">Users below this count get a ⚠️ New Member Alert when they post. Set to 0 to disable the threshold.</div>
+        </div>
+        <input type="number" class="number-input" id="setting-min-reviews" value="${minReviews}" min="0" max="999" style="width:70px">
+      </div>
+
+      <!-- ── Section 2: Posting Rules ── -->
+      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Posting Rules</h3>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Server-Wide Posting Cooldown</div>
+          <div class="setting-desc">Applies to every user unless they have a personal limit set. Leave blank to disable.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" class="number-input" id="setting-global-limit" value="${globalLimit}" min="1" max="720" placeholder="—" style="width:70px">
+          <span style="font-size:0.8rem;color:var(--text-2)">hours</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Auto-Delete Posts from New Members</div>
+          <div class="setting-desc">Automatically remove threads from users who have fewer reviews than the minimum threshold above. They'll receive a DM explaining why.</div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="tc-switch ${autoDelete ? "is-on" : ""}" id="autodel-switch"><span class="tc-knob"></span></div>
+          <input type="checkbox" id="setting-auto-delete" ${autoDelete ? "checked" : ""} hidden>
+        </label>
+      </div>
+
+      <!-- ── Section 3: Alerts & Channels ── -->
+      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Alerts &amp; Channels</h3>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Alert Channel</div>
+          <div class="setting-desc">When a ⚠️ New Member or 🛑 High Risk alert fires, also send a brief ping to this channel (paste the channel ID). Leave blank to disable.</div>
+        </div>
+        <input type="text" class="text-input" id="setting-alert-ch" value="${escapeHtml(alertCh)}" placeholder="Channel ID" style="width:190px">
+      </div>
+
+      <!-- ── Section 4: Roles ── -->
+      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Roles</h3>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Verified Role</div>
+          <div class="setting-desc">Role ID to associate with trusted / verified members (paste from Discord Developer Mode).</div>
+        </div>
+        <input type="text" class="text-input" id="setting-verified-role" value="${escapeHtml(verifiedRole)}" placeholder="Role ID" style="width:190px">
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Audit / Mod Role</div>
+          <div class="setting-desc">Role ID for moderators who can use admin-level bot commands.</div>
+        </div>
+        <input type="text" class="text-input" id="setting-audit-role" value="${escapeHtml(auditRole)}" placeholder="Role ID" style="width:190px">
+      </div>
+
     </div>
   `;
 
-  // Wire up the toggle switch
-  const sw = container.querySelector("#track-switch");
-  const input = container.querySelector("#setting-track-identity");
-  sw.addEventListener("click", () => {
-    input.checked = !input.checked;
-    sw.classList.toggle("is-on", input.checked);
+  // Toggle: identity tracking
+  const trackSw = container.querySelector("#track-switch");
+  const trackIn = container.querySelector("#setting-track-identity");
+  trackSw.addEventListener("click", () => {
+    trackIn.checked = !trackIn.checked;
+    trackSw.classList.toggle("is-on", trackIn.checked);
     markDirty();
   });
 
-  container.querySelector("#setting-proof-req").addEventListener("change", markDirty);
+  // Toggle: auto-delete
+  const autoSw = container.querySelector("#autodel-switch");
+  const autoIn = container.querySelector("#setting-auto-delete");
+  autoSw.addEventListener("click", () => {
+    autoIn.checked = !autoIn.checked;
+    autoSw.classList.toggle("is-on", autoIn.checked);
+    markDirty();
+  });
+
+  ["setting-proof-req", "setting-min-reviews", "setting-global-limit",
+   "setting-alert-ch", "setting-verified-role", "setting-audit-role"].forEach(id => {
+    container.querySelector("#" + id)?.addEventListener("change", markDirty);
+    container.querySelector("#" + id)?.addEventListener("input", markDirty);
+  });
 }
 
 // ── Channels Tab ───────────────────────────────────────
@@ -509,6 +600,85 @@ function renderLimitRows(limits) {
         showToast("Posting limit removed.", "success");
       } catch (err) {
         showToast("Failed to remove limit.", "error");
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+// ── Review Bans Tab ────────────────────────────────────
+
+function renderReviewBansTab(bans) {
+  const container = document.getElementById("tab-reviewbans");
+  container.innerHTML = `
+    <p class="tab-desc">Review-banned users can still post in monitored channels, but are blocked from leaving reputation reviews. Useful for preventing abuse without a full blacklist.</p>
+
+    <div class="channel-form">
+      <div class="cf-row">
+        <div class="cf-group">
+          <span class="cf-label">User ID</span>
+          <input type="text" class="text-input" id="rb-id-input" placeholder="e.g. 1234567890123456789">
+        </div>
+        <button class="btn-add" id="rb-add-btn" style="background:var(--danger-dim);border-color:rgba(248,113,113,0.3);color:var(--danger)">+ Ban from Reviewing</button>
+      </div>
+      <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Developer Mode must be enabled.</p>
+    </div>
+
+    <div class="list-rows" id="reviewbans-list"></div>
+  `;
+
+  renderReviewBanRows(bans);
+
+  document.getElementById("rb-add-btn").addEventListener("click", async () => {
+    const idInput = document.getElementById("rb-id-input");
+    const userId = idInput.value.trim();
+    if (!userId || !/^\d+$/.test(userId)) {
+      showToast("Enter a valid user ID (numbers only).", "error");
+      return;
+    }
+    const btn = document.getElementById("rb-add-btn");
+    btn.disabled = true;
+    try {
+      await api.addReviewBan(currentGuildId, userId);
+      idInput.value = "";
+      const updated = await api.getReviewBans(currentGuildId);
+      renderReviewBanRows(updated);
+      showToast("User banned from reviewing.", "success");
+    } catch {
+      showToast("Failed to ban user.", "error");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function renderReviewBanRows(bans) {
+  const list = document.getElementById("reviewbans-list");
+  if (!list) return;
+  if (!bans || bans.length === 0) {
+    list.innerHTML = '<p class="empty-state">No review bans active.</p>';
+    return;
+  }
+  list.innerHTML = bans.map(entry => `
+    <div class="list-row">
+      <span class="lr-badge" style="background:rgba(248,113,113,0.12);color:var(--danger)">🚫</span>
+      <span class="lr-name">${escapeHtml(entry.username || "Unknown User")}</span>
+      <span class="lr-sub">${entry.user_id}</span>
+      <button class="btn-delete" data-id="${entry.user_id}" title="Remove review ban">✕</button>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".btn-delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const userId = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        await api.removeReviewBan(currentGuildId, userId);
+        const updated = await api.getReviewBans(currentGuildId);
+        renderReviewBanRows(updated);
+        showToast("Review ban removed.", "success");
+      } catch {
+        showToast("Failed to remove ban.", "error");
         btn.disabled = false;
       }
     });

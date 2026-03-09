@@ -62,4 +62,12 @@ const api = {
     }),
   getMembers: (guildId) => apiRequest("/api/members/" + guildId),
   getUserReviews: (guildId, userId) => apiRequest("/api/reviews/" + guildId + "/" + userId),
+  getReviewBans: (guildId) => apiRequest("/api/reviewbans/" + guildId),
+  addReviewBan: (guildId, userId) =>
+    apiRequest("/api/reviewbans/" + guildId, {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId }),
+    }),
+  removeReviewBan: (guildId, userId) =>
+    apiRequest("/api/reviewbans/" + guildId + "/" + userId, { method: "DELETE" }),
 };
