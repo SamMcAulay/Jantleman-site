@@ -136,17 +136,19 @@ async function loadGuildData(guildId) {
 
   showLoading(true);
   try {
-    const [settings, channels, blacklist, limits] = await Promise.all([
+    const [settings, channels, blacklist, limits, members] = await Promise.all([
       api.getSettings(guildId),
       api.getChannels(guildId),
       api.getBlacklist(guildId),
       api.getLimits(guildId),
+      api.getMembers(guildId),
     ]);
     currentSettings = settings;
     renderSettingsTab(settings);
     renderChannelsTab(channels);
     renderBlacklistTab(blacklist);
     renderLimitsTab(limits);
+    renderMembersTab(members);
   } catch (err) {
     console.error("Failed to load data:", err);
     showToast("Failed to load server data.", "error");
@@ -511,6 +513,145 @@ function renderLimitRows(limits) {
       }
     });
   });
+}
+
+// ── Members & Reviews Tab ──────────────────────────────
+
+function renderMembersTab(members) {
+  const container = document.getElementById("tab-members");
+
+  if (!members || members.length === 0) {
+    container.innerHTML = `
+      <p class="tab-desc">View all tracked members and their reputation reviews.</p>
+      <p class="empty-state">No reviewed members in this server yet.</p>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <p class="tab-desc">All members with reputation reviews. Click a row to expand their reviews.</p>
+    <div class="member-search-row">
+      <input type="text" class="text-input" id="member-search" placeholder="Search by name or ID…">
+    </div>
+    <div id="members-list"></div>
+  `;
+
+  renderMemberRows(members, members);
+
+  document.getElementById("member-search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const filtered = q
+      ? members.filter(m =>
+          (m.username || m.user_id).toLowerCase().includes(q) ||
+          m.user_id.includes(q)
+        )
+      : members;
+    renderMemberRows(members, filtered);
+  });
+}
+
+function starsDisplay(avg) {
+  const full = Math.round(avg);
+  const empty = 5 - full;
+  return `<span class="stars-full">${"★".repeat(full)}</span><span class="stars-empty">${"★".repeat(empty)}</span>`;
+}
+
+function renderMemberRows(allMembers, filtered) {
+  const list = document.getElementById("members-list");
+  if (!list) return;
+
+  if (!filtered.length) {
+    list.innerHTML = '<p class="empty-state">No members match your search.</p>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(m => `
+    <div class="member-row" data-uid="${m.user_id}">
+      <div class="member-row-header">
+        <div class="member-avatar-wrap">
+          ${m.avatar
+            ? `<img class="member-avatar" src="${m.avatar}" alt="">`
+            : `<div class="member-avatar-ph">${(m.username || m.user_id)[0].toUpperCase()}</div>`
+          }
+        </div>
+        <div class="member-info">
+          <div class="member-name">${escapeHtml(m.username || m.user_id)}</div>
+          <div class="member-id">${m.user_id}</div>
+        </div>
+        <div class="member-rating">
+          <div class="member-stars">${starsDisplay(m.avg_rating)}</div>
+          <div class="member-rating-val">${m.avg_rating} / 5</div>
+        </div>
+        <div class="member-count">${m.total_reviews} review${m.total_reviews !== 1 ? "s" : ""}</div>
+        <div class="member-badges">
+          ${m.is_blacklisted ? `<span class="mbadge mbadge-bl">Blacklisted</span>` : ""}
+          ${m.post_limit_hours ? `<span class="mbadge mbadge-lim">Limit: ${m.post_limit_hours}h</span>` : ""}
+        </div>
+        <button class="member-expand-btn" aria-label="Expand reviews">▼</button>
+      </div>
+      <div class="member-reviews" hidden>
+        <div class="review-loading">Loading reviews…</div>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".member-row").forEach(row => {
+    const btn = row.querySelector(".member-expand-btn");
+    const reviewsEl = row.querySelector(".member-reviews");
+    let loaded = false;
+
+    btn.addEventListener("click", async () => {
+      const open = !reviewsEl.hidden;
+      if (open) {
+        reviewsEl.hidden = true;
+        btn.textContent = "▼";
+        row.classList.remove("expanded");
+        return;
+      }
+      reviewsEl.hidden = false;
+      btn.textContent = "▲";
+      row.classList.add("expanded");
+
+      if (loaded) return;
+      loaded = true;
+
+      try {
+        const reviews = await api.getUserReviews(currentGuildId, row.dataset.uid);
+        if (!reviews || reviews.length === 0) {
+          reviewsEl.innerHTML = '<p class="review-empty">No reviews on record.</p>';
+          return;
+        }
+        reviewsEl.innerHTML = reviews.map(r => `
+          <div class="review-card">
+            <div class="review-header">
+              <span class="review-stars">${starsDisplay(r.stars)}</span>
+              <span class="review-author">by ${escapeHtml(r.author_name)}</span>
+              <span class="review-time">${relativeTime(r.timestamp)}</span>
+            </div>
+            ${r.comment ? `<p class="review-comment">${escapeHtml(r.comment)}</p>` : ""}
+            ${r.proof_url ? `<a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">📎 View Proof</a>` : ""}
+          </div>
+        `).join("");
+      } catch {
+        reviewsEl.innerHTML = '<p class="review-empty" style="color:var(--danger)">Failed to load reviews.</p>';
+      }
+    });
+  });
+}
+
+function relativeTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts.replace(" ", "T") + "Z");
+  const diff = Date.now() - d.getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days < 30) return `${days}d ago`;
+  return d.toLocaleDateString();
 }
 
 // ── Helpers ────────────────────────────────────────────

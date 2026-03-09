@@ -60,4 +60,6 @@ const api = {
     apiRequest("/api/limits/" + guildId + "/" + userId, {
       method: "DELETE",
     }),
+  getMembers: (guildId) => apiRequest("/api/members/" + guildId),
+  getUserReviews: (guildId, userId) => apiRequest("/api/reviews/" + guildId + "/" + userId),
 };
