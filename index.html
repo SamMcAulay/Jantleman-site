@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Jantleman — Control Panel</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Jantleman">
+  <meta property="og:title" content="The Jantleman — Discord Bot">
+  <meta property="og:description" content="Community reputation, market alerts, and identity tracking for your Discord server.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <style>
+    .login-card { position: relative; }
+  </style>
+</head>
+<body class="login-page">
+
+  <canvas id="starfield"></canvas>
+
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="login-bolt">🛡️</span>
+        <h1 class="login-title">JANTLEMAN</h1>
+        <p class="login-subtitle">Control Panel</p>
+      </div>
+
+      <div class="login-divider"></div>
+
+      <p class="login-desc">
+        Manage reputation settings, monitored channels, blacklists, and posting limits — all from one place.
+      </p>
+
+      <a href="#" id="login-btn" class="btn-discord">
+        <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.077.111 18.097.12 18.11a19.9 19.9 0 0 0 5.993 3.03.077.077 0 0 0 .084-.028 13.956 13.956 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+        </svg>
+        LOGIN WITH DISCORD
+      </a>
+
+      <p class="login-warning">
+        ⚠ Access limited to server admins where The Jantleman is present.
+      </p>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=1"></script>
+  <script>
+    // ── Handle OAuth callback (token in URL fragment) ──
+    const hash = window.location.hash;
+    if (hash.startsWith('#token=')) {
+      sessionStorage.setItem('jantleman_token', hash.slice(7));
+      history.replaceState(null, '', window.location.pathname);
+      window.location.href = '/dashboard';
+    }
+
+    // ── Set login button href ──
+    document.getElementById('login-btn').href = JANTLEMAN_API + '/auth/login';
+
+    // ── Animated starfield ──
+    (function () {
+      const canvas = document.getElementById('starfield');
+      const ctx = canvas.getContext('2d');
+      let stars = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        stars = Array.from({ length: 160 }, () => ({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.2 + 0.1,
+          phase: Math.random() * Math.PI * 2,
+          speed: Math.random() * 0.5 + 0.15,
+          drift: (Math.random() - 0.5) * 0.06,
+        }));
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const t = Date.now() / 1000;
+        for (const s of stars) {
+          const a = 0.04 + 0.14 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+          s.y -= 0.05;
+          s.x += s.drift;
+          if (s.y < -2) { s.y = canvas.height + 2; s.x = Math.random() * canvas.width; }
+          ctx.beginPath();
+          ctx.rect(s.x, s.y, s.r * 1.5, s.r * 1.5);
+          ctx.fillStyle = `rgba(220, 180, 100, ${a})`;
+          ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      draw();
+      window.addEventListener('resize', resize);
+    })();
+  </script>
+</body>
+</html>
