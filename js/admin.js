@@ -279,6 +279,7 @@ async function renderGuildDetail(guildId) {
       <button class="detail-tab-btn ${activeDetailTab==='channels'?'active':''}" data-tab="channels">Channels</button>
       <button class="detail-tab-btn ${activeDetailTab==='blacklist'?'active':''}" data-tab="blacklist">Blacklist</button>
       <button class="detail-tab-btn ${activeDetailTab==='limits'?'active':''}" data-tab="limits">Limits</button>
+      <button class="detail-tab-btn ${activeDetailTab==='access'?'active':''}" data-tab="access">Access</button>
       <button class="detail-tab-btn ${activeDetailTab==='danger'?'active':''}" data-tab="danger">⚠️ Actions</button>
     </div>
     <div id="detail-panel-content"></div>
@@ -306,6 +307,7 @@ async function loadDetailPanel(guildId, tab) {
     else if (tab === "channels") await renderDetailChannels(guildId, panel);
     else if (tab === "blacklist") await renderDetailBlacklist(guildId, panel);
     else if (tab === "limits") await renderDetailLimits(guildId, panel);
+    else if (tab === "access") await renderDetailAccess(guildId, panel);
     else if (tab === "danger") renderDetailDanger(guildId, panel);
   } catch (e) {
     panel.innerHTML = `<div style="color:var(--danger);font-size:0.85rem">Failed to load data.</div>`;
@@ -789,6 +791,98 @@ async function renderDetailLimits(guildId, panel) {
       toast("Posting limit set.");
     } else {
       toast("Failed to set limit.", "error");
+    }
+  });
+}
+
+async function renderDetailAccess(guildId, panel) {
+  const [rolesRes, dashRes] = await Promise.all([
+    adminReq(`/admin/guild/${guildId}/roles`),
+    adminReq(`/admin/guild/${guildId}/dashboard-roles`),
+  ]);
+  const allRoles = await rolesRes.json();
+  let dashRoles = await dashRes.json();
+
+  function renderRoleRows() {
+    const tbody = document.getElementById("access-tbody");
+    if (!tbody) return;
+    if (!dashRoles.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="2">No roles configured. All dashboard access requires Discord admin/manage-server permissions.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = dashRoles.map(r => `
+      <tr data-rid="${r.role_id}">
+        <td><span style="display:inline-block;background:var(--accent-dim);border:1px solid var(--accent-line);color:var(--accent-bright);border-radius:var(--radius-sm);padding:2px 8px;font-size:0.78rem;font-weight:600">@${r.name}</span></td>
+        <td><button class="btn-danger btn-xs del-dash-role">Remove</button></td>
+      </tr>
+    `).join("");
+    tbody.querySelectorAll(".del-dash-role").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const rid = btn.closest("tr").dataset.rid;
+        btn.disabled = true;
+        const res = await adminReq(`/admin/guild/${guildId}/dashboard-roles/${rid}`, { method: "DELETE" });
+        if (res.ok) {
+          dashRoles = dashRoles.filter(r => r.role_id !== rid);
+          renderRoleRows();
+          toast("Role removed.");
+        } else {
+          btn.disabled = false;
+          toast("Failed to remove role.", "error");
+        }
+      });
+    });
+  }
+
+  panel.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">Add Dashboard Access Role</span></div>
+      <div class="card-body">
+        <p style="font-size:0.82rem;color:var(--text-2);margin-bottom:14px">
+          Members with any of these roles can log in and edit this server's config on the dashboard,
+          even without Discord admin or manage-server permissions.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Role</label>
+            <select id="add-dash-role-select" class="form-input" style="width:220px">
+              <option value="">— pick a role —</option>
+              ${allRoles.map(r => `<option value="${r.role_id}">${r.name}</option>`).join("")}
+            </select>
+          </div>
+          <button id="add-dash-role-btn" class="btn-primary" style="align-self:flex-end">Add Role</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec-title">Dashboard Access Roles</div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Role</th><th></th></tr></thead>
+        <tbody id="access-tbody"></tbody>
+      </table>
+    </div>
+  `;
+
+  renderRoleRows();
+
+  document.getElementById("add-dash-role-btn").addEventListener("click", async () => {
+    const sel = document.getElementById("add-dash-role-select");
+    const rid = sel.value;
+    if (!rid) return;
+    const btn = document.getElementById("add-dash-role-btn");
+    btn.disabled = true;
+    const res = await adminReq(`/admin/guild/${guildId}/dashboard-roles`, {
+      method: "POST",
+      body: JSON.stringify({ role_id: rid }),
+    });
+    btn.disabled = false;
+    if (res.ok) {
+      const roleName = allRoles.find(r => r.role_id === rid)?.name || rid;
+      dashRoles = [...dashRoles, { role_id: rid, name: roleName }];
+      sel.value = "";
+      renderRoleRows();
+      toast("Role added.");
+    } else {
+      toast("Failed to add role.", "error");
     }
   });
 }
