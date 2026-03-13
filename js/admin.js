@@ -396,18 +396,18 @@ async function renderDetailMembers(guildId, panel) {
 
   panel.innerHTML = `
     <div class="data-table-wrap">
-      <table class="data-table">
+      <table class="data-table" id="members-table">
         <thead><tr>
-          <th>User</th><th>Reviews</th><th>Avg Rating</th><th>Blacklisted</th><th>Post Limit</th>
+          <th>User</th><th>Reviews</th><th>Avg Rating</th><th>Blacklisted</th><th>Post Limit</th><th></th>
         </tr></thead>
         <tbody>
           ${users.map(u => `
-            <tr>
+            <tr data-uid="${u.user_id}" class="member-row">
               <td>
                 <div class="user-cell">
                   ${u.avatar ? `<img class="u-avatar" src="${u.avatar}" alt="">` : `<div class="u-avatar-ph">${(u.username||"?")[0]}</div>`}
                   <div>
-                    <div class="u-name">${u.username}</div>
+                    <div class="u-name">${u.username || u.user_id}</div>
                     <div class="u-id">${u.user_id}</div>
                   </div>
                 </div>
@@ -416,10 +416,136 @@ async function renderDetailMembers(guildId, panel) {
               <td><span class="stars">${starsHtml(u.avg_rating)}</span> ${u.avg_rating}</td>
               <td>${u.is_blacklisted ? '<span style="color:var(--danger)">Yes</span>' : '<span style="color:var(--success)">No</span>'}</td>
               <td>${u.post_limit_hours ? u.post_limit_hours + "h" : "—"}</td>
+              <td><button class="btn-primary btn-xs review-expand-btn">Reviews</button></td>
+            </tr>
+            <tr class="review-expand-row" data-for="${u.user_id}" style="display:none">
+              <td colspan="6" style="padding:0;background:var(--surface-2)">
+                <div class="review-expand-inner" style="padding:16px 20px"></div>
+              </td>
             </tr>
           `).join("")}
         </tbody>
       </table>
+    </div>
+  `;
+
+  panel.querySelectorAll(".review-expand-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const memberRow = btn.closest(".member-row");
+      const uid = memberRow.dataset.uid;
+      const expandRow = panel.querySelector(`.review-expand-row[data-for="${uid}"]`);
+      const inner = expandRow.querySelector(".review-expand-inner");
+
+      if (expandRow.style.display !== "none") {
+        expandRow.style.display = "none";
+        btn.textContent = "Reviews";
+        return;
+      }
+
+      btn.textContent = "Loading…";
+      btn.disabled = true;
+      expandRow.style.display = "";
+      inner.innerHTML = `<span style="color:var(--text-2);font-size:0.82rem">Loading reviews…</span>`;
+
+      const rRes = await adminReq(`/api/reviews/${guildId}/${uid}`);
+      const reviews = await rRes.json();
+      btn.textContent = "Hide";
+      btn.disabled = false;
+
+      if (!reviews.length) {
+        inner.innerHTML = `<span style="color:var(--text-3);font-size:0.82rem">No reviews in this server.</span>`;
+        return;
+      }
+
+      renderAdminReviewCards(reviews, inner);
+    });
+  });
+}
+
+function wireAdminReviewCards(container) {
+  container.querySelectorAll(".admin-review-card").forEach(card => {
+    const rid = parseInt(card.dataset.rid);
+
+    card.querySelector(".arv-save").addEventListener("click", async () => {
+      const btn = card.querySelector(".arv-save");
+      const stars = parseInt(card.querySelector(".arv-stars").value);
+      const comment = card.querySelector(".arv-comment").value.trim();
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+      const res = await adminReq(`/admin/reviews/${rid}`, {
+        method: "PATCH",
+        body: JSON.stringify({ stars, comment }),
+      });
+      btn.disabled = false;
+      btn.textContent = "Save";
+      if (res.ok) {
+        card.querySelector(".arv-stars-display").textContent = starsHtml(stars);
+        toast("Review updated.");
+      } else {
+        toast("Failed to save.", "error");
+      }
+    });
+
+    card.querySelector(".arv-delete").addEventListener("click", async () => {
+      if (!confirm("Delete this review? This cannot be undone.")) return;
+      const btn = card.querySelector(".arv-delete");
+      btn.disabled = true;
+      const res = await adminReq(`/admin/reviews/${rid}`, { method: "DELETE" });
+      if (res.ok) {
+        card.remove();
+        toast("Review deleted.");
+      } else {
+        btn.disabled = false;
+        toast("Failed to delete.", "error");
+      }
+    });
+  });
+}
+
+function renderAdminReviewCards(reviews, container) {
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+      ${reviews.map(r => adminReviewCardHtml(r)).join("")}
+    </div>
+  `;
+  wireAdminReviewCards(container);
+}
+
+function adminReviewCardHtml(r) {
+  const proofHtml = r.proof_url && r.proof_url.startsWith("http")
+    ? `<a href="${r.proof_url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--gold-bright);text-decoration:none;background:var(--gold-dim);border:1px solid var(--gold-line);border-radius:var(--radius-sm);padding:4px 10px;margin-top:4px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        View Proof
+      </a>`
+    : `<span style="font-size:0.72rem;color:var(--text-3)">No proof</span>`;
+
+  return `
+    <div class="admin-review-card" data-rid="${r.review_id}" style="
+      background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);
+      border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;
+      position:relative;overflow:hidden;
+    ">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span class="arv-stars-display" style="color:var(--amber);font-size:0.85rem">${starsHtml(r.stars)}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <select class="arv-stars" style="background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);font-family:var(--font-ui);font-size:0.78rem;padding:3px 6px;border-radius:var(--radius-sm);cursor:pointer">
+            ${[1,2,3,4,5].map(n => `<option value="${n}" ${r.stars===n?"selected":""}>${n}★</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--text-3)">
+        From <span style="color:var(--text-2)">${r.author_name}</span> · ${relTime(r.timestamp)}
+      </div>
+      <textarea class="arv-comment" rows="2" style="
+        width:100%;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);
+        font-family:var(--font-ui);font-size:0.82rem;padding:6px 8px;border-radius:var(--radius-sm);
+        resize:vertical;outline:none;
+      ">${r.comment || ""}</textarea>
+      ${proofHtml}
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button class="arv-save btn-primary btn-xs" style="flex:1">Save</button>
+        <button class="arv-delete btn-danger btn-xs">Delete</button>
+      </div>
     </div>
   `;
 }
@@ -824,19 +950,8 @@ function renderLookupView() {
 
       ${reviews.length ? `
         <div class="sec-title">Recent Reviews (${reviews.length})</div>
-        <div class="data-table-wrap" style="margin-bottom:20px">
-          <table class="data-table">
-            <thead><tr><th>Stars</th><th>Comment</th><th>Date</th></tr></thead>
-            <tbody>
-              ${reviews.map(r => `
-                <tr>
-                  <td><span class="stars">${starsHtml(r.stars)}</span></td>
-                  <td>${r.comment || "—"}</td>
-                  <td style="color:var(--text-2)">${relTime(r.timestamp)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
+        <div id="lookup-reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:20px">
+          ${reviews.map(r => adminReviewCardHtml(r)).join("")}
         </div>
       ` : ""}
 
@@ -858,6 +973,11 @@ function renderLookupView() {
         </div>
       ` : ""}
     `;
+  };
+
+    // Wire up review cards in the lookup result
+    const grid = document.getElementById("lookup-reviews-grid");
+    if (grid) wireAdminReviewCards(grid);
   };
 
   document.getElementById("lookup-btn").addEventListener("click", doLookup);
