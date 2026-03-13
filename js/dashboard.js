@@ -864,7 +864,7 @@ async function openDrawerFor(card, members) {
           </div>
         </div>
         ${r.comment ? `<p class="review-comment">${escapeHtml(r.comment)}</p>` : ""}
-        ${r.proof_url ? `
+        ${r.proof_url && r.proof_url.startsWith('http') ? `
           <a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
             View Proof
