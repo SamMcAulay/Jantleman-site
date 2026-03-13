@@ -973,7 +973,6 @@ function renderLookupView() {
         </div>
       ` : ""}
     `;
-  };
 
     // Wire up review cards in the lookup result
     const grid = document.getElementById("lookup-reviews-grid");
