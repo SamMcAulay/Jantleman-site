@@ -4,12 +4,12 @@
 
 // ── Auth ──────────────────────────────────────────────
 const token = getToken();
-if (!token) { location.href = "/index.html"; }
+if (!token) { location.href = "/"; }
 
 const payload = decodePayload(token);
 if (!payload || !payload.is_admin) {
   clearToken();
-  location.href = "/index.html";
+  location.href = "/";
 }
 
 // ── API helper ────────────────────────────────────────
@@ -24,7 +24,7 @@ async function adminReq(path, opts = {}) {
   });
   if (res.status === 401 || res.status === 403) {
     clearToken();
-    location.href = "/index.html";
+    location.href = "/";
   }
   return res;
 }
@@ -126,7 +126,7 @@ function toast(msg, type = "success") {
 async function init() {
   document.getElementById("logout-btn").addEventListener("click", () => {
     clearToken();
-    location.href = "/index.html";
+    location.href = "/";
   });
 
   // Nav buttons
