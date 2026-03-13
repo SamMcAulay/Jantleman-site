@@ -9,83 +9,64 @@
   <meta property="og:title" content="The Jantleman — Server Dashboard">
   <meta property="og:description" content="Manage reputation settings, monitored channels, blacklists, and posting limits for your Discord server.">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
-  <div class="dashboard-layout">
+  <div class="app-shell">
 
-    <!-- ── Sidebar ─────────────────────────────────── -->
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <div class="sidebar-brand">
-          <div class="sidebar-crest">&#x1F6E1;&#xFE0F;</div>
-          <span class="sidebar-name">Jantleman</span>
-        </div>
-
-        <p class="guild-label">Server</p>
-        <select id="guild-selector" class="guild-selector">
-          <option value="">Loading servers…</option>
-        </select>
+    <!-- ── Topbar ─────────────────────────────────── -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-crest">&#x1F6E1;&#xFE0F;</div>
+        <span class="brand-name">Jantleman</span>
       </div>
 
-      <nav class="sidebar-nav">
-        <p class="nav-section-label">Settings</p>
-
-        <button class="nav-tab active" data-tab="settings">
-          <span class="nav-icon">&#x2699;&#xFE0F;</span>
-          <span class="nav-label">Settings</span>
-        </button>
-
-        <button class="nav-tab" data-tab="channels">
-          <span class="nav-icon">&#x1F4CB;</span>
-          <span class="nav-label">Monitored Channels</span>
-        </button>
-
-        <button class="nav-tab" data-tab="blacklist">
-          <span class="nav-icon">&#x26D4;</span>
-          <span class="nav-label">Blacklist</span>
-        </button>
-
-        <button class="nav-tab" data-tab="limits">
-          <span class="nav-icon">&#x23F1;&#xFE0F;</span>
-          <span class="nav-label">Posting Limits</span>
-        </button>
-
-        <button class="nav-tab" data-tab="reviewbans">
-          <span class="nav-icon">&#x1F6AB;</span>
-          <span class="nav-label">Review Bans</span>
-        </button>
-
-        <p class="nav-section-label" style="margin-top:10px">Data</p>
-        <button class="nav-tab" data-tab="members">
-          <span class="nav-icon">&#x2B50;</span>
-          <span class="nav-label">Members &amp; Reviews</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap">
-          <a href="/guide.html" style="font-size:0.75rem;color:var(--text-2);text-decoration:none;" title="Command Guide">&#x1F4D6; Guide</a>
-          <a href="/admin.html" id="admin-link" style="font-size:0.75rem;color:var(--text-2);text-decoration:none;display:none" title="Admin Dashboard">&#x1F6E1;&#xFE0F; Admin</a>
+      <div class="topbar-center">
+        <div class="guild-wrap">
+          <span class="guild-label-inline">Server</span>
+          <select id="guild-selector" class="guild-selector">
+            <option value="">Loading servers…</option>
+          </select>
         </div>
+      </div>
+
+      <div class="topbar-end">
         <span id="status" class="status loading">Connecting…</span>
-        <button id="logout-btn" class="btn-logout">
-          <span>&#x2190;</span> Log out
-        </button>
-      </div>
-    </aside>
-
-    <!-- ── Main ────────────────────────────────────── -->
-    <main class="main">
-      <header class="main-header">
-        <button id="menu-toggle" class="menu-toggle" aria-label="Open menu">&#x2630;</button>
-        <h1 id="tab-heading">Settings</h1>
-        <a id="invite-btn" class="btn-invite" target="_blank" rel="noopener">+ Add to Server</a>
         <button id="save-btn" class="btn-save" disabled>Save Changes</button>
-      </header>
+        <button id="logout-btn" class="btn-logout-top">&#x2190; Log out</button>
+      </div>
+    </header>
 
-      <div class="main-body">
+    <!-- ── Tab Rail ──────────────────────────────── -->
+    <nav class="tabrail">
+      <button class="rail-tab active" data-tab="settings">
+        <span class="rail-icon">&#x2699;&#xFE0F;</span> Settings
+      </button>
+      <button class="rail-tab" data-tab="channels">
+        <span class="rail-icon">&#x1F4CB;</span> Channels
+      </button>
+      <button class="rail-tab" data-tab="members">
+        <span class="rail-icon">&#x2B50;</span> Members
+      </button>
+      <button class="rail-tab" data-tab="blacklist">
+        <span class="rail-icon">&#x26D4;</span> Blacklist
+      </button>
+      <button class="rail-tab" data-tab="limits">
+        <span class="rail-icon">&#x23F1;&#xFE0F;</span> Limits
+      </button>
+      <button class="rail-tab" data-tab="reviewbans">
+        <span class="rail-icon">&#x1F6AB;</span> Review Bans
+      </button>
+      <div class="tabrail-aux">
+        <a href="/guide.html" class="rail-aux-link">&#x1F4D6; Guide</a>
+        <a href="/admin.html" id="admin-link" class="rail-aux-link" style="display:none">&#x1F6E1;&#xFE0F; Admin</a>
+      </div>
+    </nav>
+
+    <!-- ── Stage ─────────────────────────────────── -->
+    <div class="stage-wrap">
+      <div class="stage">
 
         <!-- Invite panel (shown when user admins no servers with the bot) -->
         <div id="invite-panel" class="invite-panel" hidden>
@@ -115,40 +96,38 @@
         <div id="tab-reviewbans" class="tab-panel"></div>
         <div id="tab-members"    class="tab-panel"></div>
 
-      </div><!-- /main-body -->
-    </main>
+      </div>
+    </div>
 
-  </div><!-- /dashboard-layout -->
-
-  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+  </div><!-- /app-shell -->
 
   <!-- Mobile bottom navigation -->
-  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-    <button class="bottom-nav-btn active" data-tab="settings">
-      <span class="bottom-nav-icon">&#x2699;&#xFE0F;</span>
+  <nav class="mobile-nav" id="mobile-nav">
+    <button class="mobile-tab active" data-tab="settings">
+      <span class="mobile-tab-icon">&#x2699;&#xFE0F;</span>
       Settings
     </button>
-    <button class="bottom-nav-btn" data-tab="channels">
-      <span class="bottom-nav-icon">&#x1F4CB;</span>
+    <button class="mobile-tab" data-tab="channels">
+      <span class="mobile-tab-icon">&#x1F4CB;</span>
       Channels
     </button>
-    <button class="bottom-nav-btn" data-tab="members">
-      <span class="bottom-nav-icon">&#x2B50;</span>
+    <button class="mobile-tab" data-tab="members">
+      <span class="mobile-tab-icon">&#x2B50;</span>
       Members
     </button>
-    <button class="bottom-nav-btn" data-tab="blacklist">
-      <span class="bottom-nav-icon">&#x26D4;</span>
+    <button class="mobile-tab" data-tab="blacklist">
+      <span class="mobile-tab-icon">&#x26D4;</span>
       Blacklist
     </button>
-    <button class="bottom-nav-btn" data-tab="limits">
-      <span class="bottom-nav-icon">&#x23F1;&#xFE0F;</span>
+    <button class="mobile-tab" data-tab="limits">
+      <span class="mobile-tab-icon">&#x23F1;&#xFE0F;</span>
       Limits
     </button>
   </nav>
 
-  <script src="js/config.js?v=2"></script>
-  <script src="js/auth.js?v=2"></script>
-  <script src="js/api.js?v=2"></script>
-  <script src="js/dashboard.js?v=2"></script>
+  <script src="js/config.js?v=3"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/api.js?v=3"></script>
+  <script src="js/dashboard.js?v=3"></script>
 </body>
 </html>

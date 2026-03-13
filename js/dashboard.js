@@ -5,6 +5,7 @@ let currentGuildId = null;
 let currentSettings = null;
 let isDirty = false;
 let memberSortMode = 'reviews';
+let activeCardUid = null;
 
 async function init() {
   // Handle OAuth callback: token lands in fragment here
@@ -16,7 +17,6 @@ async function init() {
 
   if (!requireAuth()) return;
 
-  document.getElementById("invite-btn").href = JANTLEMAN_INVITE;
   document.getElementById("invite-hero-btn").href = JANTLEMAN_INVITE;
 
   // Show admin link for admin users
@@ -29,61 +29,43 @@ async function init() {
   setupTabs();
   setupSaveButton();
   setupLogout();
-  setupMobileMenu();
   await loadGuilds();
 }
 
 // ── UI Setup ──────────────────────────────────────────
 
 function activateTab(target) {
-  const tab = document.querySelector(`.nav-tab[data-tab="${target}"]`);
-  if (!tab) return;
-  document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
-  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-  document.querySelectorAll(".bottom-nav-btn").forEach((b) => {
+  document.querySelectorAll(".rail-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === target);
+  });
+  document.querySelectorAll(".mobile-tab").forEach((b) => {
     b.classList.toggle("active", b.dataset.tab === target);
   });
-  tab.classList.add("active");
-  document.getElementById("tab-" + target).classList.add("active");
-  document.getElementById("tab-heading").textContent = tab.querySelector(".nav-label").textContent;
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+  const panel = document.getElementById("tab-" + target);
+  if (panel) panel.classList.add("active");
 }
 
 function setupTabs() {
-  document.querySelectorAll(".nav-tab").forEach((tab) => {
+  document.querySelectorAll(".rail-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       activateTab(tab.dataset.tab);
       history.replaceState(null, "", "#" + tab.dataset.tab);
-      closeSidebar();
     });
   });
 
-  // Restore tab from URL hash on load
-  const hash = window.location.hash.slice(1);
-  if (hash && document.querySelector(`.nav-tab[data-tab="${hash}"]`)) {
-    activateTab(hash);
-  }
-}
-
-function openSidebar() {
-  document.querySelector(".sidebar").classList.add("open");
-  document.getElementById("sidebar-backdrop").classList.add("open");
-}
-
-function closeSidebar() {
-  document.querySelector(".sidebar").classList.remove("open");
-  document.getElementById("sidebar-backdrop").classList.remove("open");
-}
-
-function setupMobileMenu() {
-  document.getElementById("menu-toggle").addEventListener("click", openSidebar);
-  document.getElementById("sidebar-backdrop").addEventListener("click", closeSidebar);
-
-  document.querySelectorAll(".bottom-nav-btn").forEach((btn) => {
+  document.querySelectorAll(".mobile-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
       activateTab(btn.dataset.tab);
       history.replaceState(null, "", "#" + btn.dataset.tab);
     });
   });
+
+  // Restore tab from URL hash on load
+  const hash = window.location.hash.slice(1);
+  if (hash && document.querySelector(`.rail-tab[data-tab="${hash}"]`)) {
+    activateTab(hash);
+  }
 }
 
 function setupSaveButton() {
@@ -139,6 +121,7 @@ async function loadGuilds() {
 async function loadGuildData(guildId) {
   currentGuildId = guildId;
   isDirty = false;
+  activeCardUid = null;
   const btn = document.getElementById("save-btn");
   btn.disabled = true;
   btn.textContent = "Save Changes";
@@ -213,6 +196,10 @@ async function saveSettings() {
 
 // ── Settings Tab ───────────────────────────────────────
 
+function sectionTitle(text) {
+  return `<h3 class="section-title"><span class="section-pip"></span><span class="section-title-text">${text}</span></h3>`;
+}
+
 function renderSettingsTab(s) {
   const container = document.getElementById("tab-settings");
   const trackOn      = s.track_identity !== false;
@@ -228,7 +215,7 @@ function renderSettingsTab(s) {
     <p class="tab-desc">Configure server-wide behaviour for The Jantleman.</p>
     <div class="settings-fields">
 
-      <h3 class="section-title"><span class="section-pip"></span>Identity &amp; Reviews</h3>
+      ${sectionTitle("Identity &amp; Reviews")}
 
       <div class="setting-row">
         <div class="setting-info">
@@ -256,12 +243,12 @@ function renderSettingsTab(s) {
       <div class="setting-row">
         <div class="setting-info">
           <div class="setting-label">Minimum Reviews to be "Established"</div>
-          <div class="setting-desc">Users below this count get a ⚠️ New Member Alert when they post. Set to 0 to disable the threshold.</div>
+          <div class="setting-desc">Users below this count get a warning when they post. Set to 0 to disable.</div>
         </div>
         <input type="number" class="number-input" id="setting-min-reviews" value="${minReviews}" min="0" max="999" style="width:70px">
       </div>
 
-      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Posting Rules</h3>
+      ${sectionTitle("Posting Rules")}
 
       <div class="setting-row">
         <div class="setting-info">
@@ -285,17 +272,17 @@ function renderSettingsTab(s) {
         </label>
       </div>
 
-      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Alerts &amp; Channels</h3>
+      ${sectionTitle("Alerts &amp; Channels")}
 
       <div class="setting-row">
         <div class="setting-info">
           <div class="setting-label">Alert Channel</div>
-          <div class="setting-desc">When a ⚠️ New Member or 🛑 High Risk alert fires, also send a ping to this channel (paste channel ID). Leave blank to disable.</div>
+          <div class="setting-desc">When a New Member or High Risk alert fires, also send a ping to this channel (paste channel ID). Leave blank to disable.</div>
         </div>
         <input type="text" class="text-input" id="setting-alert-ch" value="${escapeHtml(alertCh)}" placeholder="Channel ID" style="width:190px">
       </div>
 
-      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Roles</h3>
+      ${sectionTitle("Roles")}
 
       <div class="setting-row">
         <div class="setting-info">
@@ -360,7 +347,7 @@ function renderChannelsTab(channels) {
         </div>
         <button class="btn-add" id="ch-add-btn">+ Add</button>
       </div>
-      <p class="hint" style="margin-top:10px;">Right-click a channel in Discord → Copy Channel ID. Developer Mode must be enabled.</p>
+      <p class="hint" style="margin-top:10px;">Right-click a channel in Discord &rarr; Copy Channel ID. Developer Mode must be enabled.</p>
     </div>
 
     <div class="list-rows" id="channels-list"></div>
@@ -447,7 +434,7 @@ function renderBlacklistTab(blacklist) {
         </div>
         <button class="btn-add" id="bl-add-btn">+ Blacklist</button>
       </div>
-      <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Developer Mode must be enabled.</p>
+      <p class="hint" style="margin-top:10px;">Right-click a user in Discord &rarr; Copy User ID. Developer Mode must be enabled.</p>
     </div>
 
     <div class="list-rows" id="blacklist-list"></div>
@@ -627,7 +614,7 @@ function renderReviewBansTab(bans) {
         </div>
         <button class="btn-add" id="rb-add-btn" style="background:var(--danger-dim);border:1px solid rgba(248,113,113,0.3);color:var(--danger)">+ Ban from Reviewing</button>
       </div>
-      <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Developer Mode must be enabled.</p>
+      <p class="hint" style="margin-top:10px;">Right-click a user in Discord &rarr; Copy User ID. Developer Mode must be enabled.</p>
     </div>
 
     <div class="list-rows" id="reviewbans-list"></div>
@@ -712,9 +699,10 @@ function renderMembersTab(members) {
   }
 
   memberSortMode = 'reviews';
+  activeCardUid = null;
 
   container.innerHTML = `
-    <p class="tab-desc">All members with reputation reviews. Click a row to read their reviews.</p>
+    <p class="tab-desc">All members with reputation reviews. Click a card to read their reviews.</p>
     <div class="members-toolbar">
       <div class="member-search-row">
         <input type="text" class="text-input" id="member-search" placeholder="Search by name or user ID…">
@@ -725,10 +713,11 @@ function renderMembersTab(members) {
         <button class="filter-btn" data-sort="worst">Lowest Rated</button>
       </div>
     </div>
-    <div id="members-list"></div>
+    <div id="member-grid" class="member-grid"></div>
+    <div id="review-drawer" class="review-drawer"></div>
   `;
 
-  renderMemberRows(members, sortMembers(members, memberSortMode));
+  renderMemberGrid(members, sortMembers(members, memberSortMode));
 
   document.getElementById("member-search").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
@@ -738,7 +727,8 @@ function renderMembersTab(members) {
           m.user_id.includes(q)
         )
       : members;
-    renderMemberRows(members, sortMembers(filtered, memberSortMode));
+    closeDrawer();
+    renderMemberGrid(members, sortMembers(filtered, memberSortMode));
   });
 
   container.querySelectorAll(".filter-btn").forEach(btn => {
@@ -753,7 +743,8 @@ function renderMembersTab(members) {
             m.user_id.includes(q)
           )
         : members;
-      renderMemberRows(members, sortMembers(filtered, memberSortMode));
+      closeDrawer();
+      renderMemberGrid(members, sortMembers(filtered, memberSortMode));
     });
   });
 }
@@ -764,97 +755,126 @@ function starsDisplay(avg) {
   return `<span class="stars-full">${"★".repeat(full)}</span><span class="stars-empty">${"★".repeat(empty)}</span>`;
 }
 
-function renderMemberRows(allMembers, filtered) {
-  const list = document.getElementById("members-list");
-  if (!list) return;
+function closeDrawer() {
+  const drawer = document.getElementById("review-drawer");
+  if (drawer) drawer.classList.remove("open");
+  document.querySelectorAll(".member-card.active").forEach(c => c.classList.remove("active"));
+  activeCardUid = null;
+}
+
+function renderMemberGrid(allMembers, filtered) {
+  const grid = document.getElementById("member-grid");
+  if (!grid) return;
 
   if (!filtered.length) {
-    list.innerHTML = '<p class="empty-state">No members match your search.</p>';
+    grid.innerHTML = '<p class="empty-state">No members match your search.</p>';
     return;
   }
 
-  list.innerHTML = filtered.map(m => `
-    <div class="member-row" data-uid="${m.user_id}">
-      <div class="member-row-header">
-        <div class="member-avatar-wrap">
-          ${m.avatar
-            ? `<img class="member-avatar" src="${m.avatar}" alt="">`
-            : `<div class="member-avatar-ph">${(m.username || m.user_id)[0].toUpperCase()}</div>`
-          }
+  grid.innerHTML = filtered.map(m => `
+    <div class="member-card" data-uid="${m.user_id}">
+      <div class="card-av">
+        ${m.avatar
+          ? `<img class="card-avatar" src="${m.avatar}" alt="">`
+          : `<div class="card-avatar-ph">${(m.username || m.user_id)[0].toUpperCase()}</div>`
+        }
+      </div>
+      <div class="card-body">
+        <div class="card-name" title="${escapeHtml(m.username || m.user_id)}">${escapeHtml(m.username || m.user_id)}</div>
+        <div class="card-rating">
+          <span class="card-stars">${starsDisplay(m.avg_rating)}</span>
+          <span class="card-score">${m.avg_rating}/5</span>
         </div>
-        <div class="member-info">
-          <div class="member-name">${escapeHtml(m.username || m.user_id)}</div>
-          <div class="member-id">${m.user_id}</div>
-        </div>
-        <div class="member-rating">
-          <div class="member-stars">${starsDisplay(m.avg_rating)}</div>
-          <div class="member-rating-val">${m.avg_rating} / 5</div>
-        </div>
-        <div class="member-count">${m.total_reviews} review${m.total_reviews !== 1 ? "s" : ""}</div>
-        <div class="member-badges">
+        <div class="card-count">${m.total_reviews} review${m.total_reviews !== 1 ? "s" : ""}</div>
+      </div>
+      ${(m.is_blacklisted || m.post_limit_hours) ? `
+        <div class="card-badges">
           ${m.is_blacklisted ? `<span class="mbadge mbadge-bl">Blacklisted</span>` : ""}
           ${m.post_limit_hours ? `<span class="mbadge mbadge-lim">Limit: ${m.post_limit_hours}h</span>` : ""}
         </div>
-        <button class="member-expand-btn" aria-label="Expand reviews">Reviews</button>
-      </div>
-      <div class="member-reviews" hidden>
-        <p class="review-loading">Loading reviews…</p>
+      ` : ""}
+      <div class="card-footer">
+        <button class="card-btn">View Reviews</button>
       </div>
     </div>
   `).join("");
 
-  list.querySelectorAll(".member-row").forEach(row => {
-    const header = row.querySelector(".member-row-header");
-    const btn = row.querySelector(".member-expand-btn");
-    const reviewsEl = row.querySelector(".member-reviews");
-    let loaded = false;
-
-    header.addEventListener("click", async () => {
-      const open = !reviewsEl.hidden;
-      if (open) {
-        reviewsEl.hidden = true;
-        btn.textContent = "Reviews";
-        row.classList.remove("expanded");
-        return;
-      }
-      reviewsEl.hidden = false;
-      btn.textContent = "Hide";
-      row.classList.add("expanded");
-
-      if (loaded) return;
-      loaded = true;
-
-      try {
-        const reviews = await api.getUserReviews(currentGuildId, row.dataset.uid);
-        if (!reviews || reviews.length === 0) {
-          reviewsEl.innerHTML = '<p class="review-empty">No reviews on record.</p>';
-          return;
-        }
-        reviewsEl.innerHTML = reviews.map(r => `
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-stars-wrap">
-                <span class="review-stars">${starsDisplay(r.stars)}</span>
-                <span class="review-score-num">${r.stars}/5</span>
-              </div>
-              <div class="review-meta">
-                <span class="review-author">${escapeHtml(r.author_name)}</span>
-                <span class="review-time">${relativeTime(r.timestamp)}</span>
-              </div>
-            </div>
-            ${r.comment ? `<p class="review-comment">${escapeHtml(r.comment)}</p>` : ""}
-            ${r.proof_url ? `
-              <a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                View Proof
-              </a>` : ""}
-          </div>
-        `).join("");
-      } catch {
-        reviewsEl.innerHTML = '<p class="review-empty" style="color:var(--danger)">Failed to load reviews.</p>';
-      }
-    });
+  grid.querySelectorAll(".member-card").forEach(card => {
+    card.addEventListener("click", () => openDrawerFor(card, filtered));
   });
+}
+
+async function openDrawerFor(card, members) {
+  const uid = card.dataset.uid;
+  const drawer = document.getElementById("review-drawer");
+
+  // Toggle closed if same card
+  if (activeCardUid === uid) {
+    closeDrawer();
+    return;
+  }
+
+  // Deactivate old card, activate new
+  document.querySelectorAll(".member-card.active").forEach(c => c.classList.remove("active"));
+  card.classList.add("active");
+  activeCardUid = uid;
+
+  const member = members.find(m => m.user_id === uid);
+  const name = member ? escapeHtml(member.username || member.user_id) : uid;
+
+  drawer.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-title">Reviews for <strong>${name}</strong></div>
+      <button class="drawer-close" id="drawer-close-btn">&#x2715;</button>
+    </div>
+    <div class="drawer-reviews" id="drawer-reviews-inner">
+      <p class="review-loading">Loading reviews…</p>
+    </div>
+  `;
+  drawer.classList.add("open");
+
+  // Scroll drawer into view
+  drawer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  document.getElementById("drawer-close-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeDrawer();
+  });
+
+  try {
+    const reviews = await api.getUserReviews(currentGuildId, uid);
+    const inner = document.getElementById("drawer-reviews-inner");
+    if (!inner) return;
+
+    if (!reviews || reviews.length === 0) {
+      inner.innerHTML = '<p class="review-empty">No reviews on record.</p>';
+      return;
+    }
+
+    inner.innerHTML = reviews.map(r => `
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-stars-wrap">
+            <span class="review-stars">${starsDisplay(r.stars)}</span>
+            <span class="review-score-num">${r.stars}/5</span>
+          </div>
+          <div class="review-meta">
+            <span class="review-author">${escapeHtml(r.author_name)}</span>
+            <span class="review-time">${relativeTime(r.timestamp)}</span>
+          </div>
+        </div>
+        ${r.comment ? `<p class="review-comment">${escapeHtml(r.comment)}</p>` : ""}
+        ${r.proof_url ? `
+          <a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            View Proof
+          </a>` : ""}
+      </div>
+    `).join("");
+  } catch {
+    const inner = document.getElementById("drawer-reviews-inner");
+    if (inner) inner.innerHTML = '<p class="review-empty" style="color:var(--danger)">Failed to load reviews.</p>';
+  }
 }
 
 function relativeTime(ts) {
