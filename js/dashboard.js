@@ -4,6 +4,7 @@
 let currentGuildId = null;
 let currentSettings = null;
 let isDirty = false;
+let memberSortMode = 'reviews';
 
 async function init() {
   // Handle OAuth callback: token lands in fragment here
@@ -29,7 +30,6 @@ async function init() {
   setupSaveButton();
   setupLogout();
   setupMobileMenu();
-  initStarfield();
   await loadGuilds();
 }
 
@@ -40,6 +40,9 @@ function activateTab(target) {
   if (!tab) return;
   document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+  document.querySelectorAll(".bottom-nav-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === target);
+  });
   tab.classList.add("active");
   document.getElementById("tab-" + target).classList.add("active");
   document.getElementById("tab-heading").textContent = tab.querySelector(".nav-label").textContent;
@@ -74,6 +77,13 @@ function closeSidebar() {
 function setupMobileMenu() {
   document.getElementById("menu-toggle").addEventListener("click", openSidebar);
   document.getElementById("sidebar-backdrop").addEventListener("click", closeSidebar);
+
+  document.querySelectorAll(".bottom-nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activateTab(btn.dataset.tab);
+      history.replaceState(null, "", "#" + btn.dataset.tab);
+    });
+  });
 }
 
 function setupSaveButton() {
@@ -218,7 +228,6 @@ function renderSettingsTab(s) {
     <p class="tab-desc">Configure server-wide behaviour for The Jantleman.</p>
     <div class="settings-fields">
 
-      <!-- ── Section 1: Identity & Reviews ── -->
       <h3 class="section-title"><span class="section-pip"></span>Identity &amp; Reviews</h3>
 
       <div class="setting-row">
@@ -252,8 +261,7 @@ function renderSettingsTab(s) {
         <input type="number" class="number-input" id="setting-min-reviews" value="${minReviews}" min="0" max="999" style="width:70px">
       </div>
 
-      <!-- ── Section 2: Posting Rules ── -->
-      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Posting Rules</h3>
+      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Posting Rules</h3>
 
       <div class="setting-row">
         <div class="setting-info">
@@ -277,19 +285,17 @@ function renderSettingsTab(s) {
         </label>
       </div>
 
-      <!-- ── Section 3: Alerts & Channels ── -->
-      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Alerts &amp; Channels</h3>
+      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Alerts &amp; Channels</h3>
 
       <div class="setting-row">
         <div class="setting-info">
           <div class="setting-label">Alert Channel</div>
-          <div class="setting-desc">When a ⚠️ New Member or 🛑 High Risk alert fires, also send a brief ping to this channel (paste the channel ID). Leave blank to disable.</div>
+          <div class="setting-desc">When a ⚠️ New Member or 🛑 High Risk alert fires, also send a ping to this channel (paste channel ID). Leave blank to disable.</div>
         </div>
         <input type="text" class="text-input" id="setting-alert-ch" value="${escapeHtml(alertCh)}" placeholder="Channel ID" style="width:190px">
       </div>
 
-      <!-- ── Section 4: Roles ── -->
-      <h3 class="section-title" style="margin-top:28px"><span class="section-pip"></span>Roles</h3>
+      <h3 class="section-title" style="margin-top:20px"><span class="section-pip"></span>Roles</h3>
 
       <div class="setting-row">
         <div class="setting-info">
@@ -354,7 +360,7 @@ function renderChannelsTab(channels) {
         </div>
         <button class="btn-add" id="ch-add-btn">+ Add</button>
       </div>
-      <p class="hint" style="margin-top:10px;">Right-click a channel in Discord → Copy Channel ID. Make sure Developer Mode is enabled.</p>
+      <p class="hint" style="margin-top:10px;">Right-click a channel in Discord → Copy Channel ID. Developer Mode must be enabled.</p>
     </div>
 
     <div class="list-rows" id="channels-list"></div>
@@ -405,7 +411,7 @@ function renderChannelList(channels) {
       <span class="lr-badge">#</span>
       <span class="lr-name">${escapeHtml(ch.channel_name || ch.channel_id)}</span>
       <span class="lr-sub">${ch.channel_id}</span>
-      <button class="btn-delete" data-id="${ch.channel_id}" title="Remove">✕</button>
+      <button class="btn-delete" data-id="${ch.channel_id}" title="Remove">&#x2715;</button>
     </div>
   `).join("");
 
@@ -441,7 +447,7 @@ function renderBlacklistTab(blacklist) {
         </div>
         <button class="btn-add" id="bl-add-btn">+ Blacklist</button>
       </div>
-      <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Make sure Developer Mode is enabled.</p>
+      <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Developer Mode must be enabled.</p>
     </div>
 
     <div class="list-rows" id="blacklist-list"></div>
@@ -486,10 +492,10 @@ function renderBlacklistRows(blacklist) {
 
   list.innerHTML = blacklist.map((entry) => `
     <div class="list-row">
-      <span class="lr-badge blacklist-badge">⛔</span>
+      <span class="lr-badge blacklist-badge">&#x26D4;</span>
       <span class="lr-name">${escapeHtml(entry.username || "Unknown User")}</span>
       <span class="lr-sub">${entry.user_id}</span>
-      <button class="btn-delete" data-id="${entry.user_id}" title="Remove from blacklist">✕</button>
+      <button class="btn-delete" data-id="${entry.user_id}" title="Remove from blacklist">&#x2715;</button>
     </div>
   `).join("");
 
@@ -581,11 +587,11 @@ function renderLimitRows(limits) {
 
   list.innerHTML = limits.map((entry) => `
     <div class="list-row">
-      <span class="lr-badge">⏱️</span>
+      <span class="lr-badge">&#x23F1;&#xFE0F;</span>
       <span class="lr-name">${escapeHtml(entry.username || "Unknown User")}</span>
       <span class="lr-sub">${entry.user_id}</span>
       <span class="limit-badge">every ${entry.post_limit_hours}h</span>
-      <button class="btn-delete" data-id="${entry.user_id}" title="Remove limit">✕</button>
+      <button class="btn-delete" data-id="${entry.user_id}" title="Remove limit">&#x2715;</button>
     </div>
   `).join("");
 
@@ -619,7 +625,7 @@ function renderReviewBansTab(bans) {
           <span class="cf-label">User ID</span>
           <input type="text" class="text-input" id="rb-id-input" placeholder="e.g. 1234567890123456789">
         </div>
-        <button class="btn-add" id="rb-add-btn" style="background:var(--danger-dim);border-color:rgba(248,113,113,0.3);color:var(--danger)">+ Ban from Reviewing</button>
+        <button class="btn-add" id="rb-add-btn" style="background:var(--danger-dim);border:1px solid rgba(248,113,113,0.3);color:var(--danger)">+ Ban from Reviewing</button>
       </div>
       <p class="hint" style="margin-top:10px;">Right-click a user in Discord → Copy User ID. Developer Mode must be enabled.</p>
     </div>
@@ -661,10 +667,10 @@ function renderReviewBanRows(bans) {
   }
   list.innerHTML = bans.map(entry => `
     <div class="list-row">
-      <span class="lr-badge" style="background:rgba(248,113,113,0.12);color:var(--danger)">🚫</span>
+      <span class="lr-badge" style="background:rgba(248,113,113,0.12);border-color:rgba(248,113,113,0.3);color:var(--danger)">&#x1F6AB;</span>
       <span class="lr-name">${escapeHtml(entry.username || "Unknown User")}</span>
       <span class="lr-sub">${entry.user_id}</span>
-      <button class="btn-delete" data-id="${entry.user_id}" title="Remove review ban">✕</button>
+      <button class="btn-delete" data-id="${entry.user_id}" title="Remove review ban">&#x2715;</button>
     </div>
   `).join("");
 
@@ -687,6 +693,13 @@ function renderReviewBanRows(bans) {
 
 // ── Members & Reviews Tab ──────────────────────────────
 
+function sortMembers(members, mode) {
+  const copy = [...members];
+  if (mode === 'best')  return copy.sort((a, b) => b.avg_rating - a.avg_rating);
+  if (mode === 'worst') return copy.sort((a, b) => a.avg_rating - b.avg_rating);
+  return copy.sort((a, b) => b.total_reviews - a.total_reviews);
+}
+
 function renderMembersTab(members) {
   const container = document.getElementById("tab-members");
 
@@ -698,15 +711,24 @@ function renderMembersTab(members) {
     return;
   }
 
+  memberSortMode = 'reviews';
+
   container.innerHTML = `
-    <p class="tab-desc">All members with reputation reviews. Click a row to expand their reviews.</p>
-    <div class="member-search-row">
-      <input type="text" class="text-input" id="member-search" placeholder="Search by name or ID…">
+    <p class="tab-desc">All members with reputation reviews. Click a row to read their reviews.</p>
+    <div class="members-toolbar">
+      <div class="member-search-row">
+        <input type="text" class="text-input" id="member-search" placeholder="Search by name or user ID…">
+      </div>
+      <div class="members-filter-bar">
+        <button class="filter-btn active" data-sort="reviews">Most Reviews</button>
+        <button class="filter-btn" data-sort="best">Highest Rated</button>
+        <button class="filter-btn" data-sort="worst">Lowest Rated</button>
+      </div>
     </div>
     <div id="members-list"></div>
   `;
 
-  renderMemberRows(members, members);
+  renderMemberRows(members, sortMembers(members, memberSortMode));
 
   document.getElementById("member-search").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
@@ -716,7 +738,23 @@ function renderMembersTab(members) {
           m.user_id.includes(q)
         )
       : members;
-    renderMemberRows(members, filtered);
+    renderMemberRows(members, sortMembers(filtered, memberSortMode));
+  });
+
+  container.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      memberSortMode = btn.dataset.sort;
+      const q = document.getElementById("member-search")?.value.trim().toLowerCase() || "";
+      const filtered = q
+        ? members.filter(m =>
+            (m.username || m.user_id).toLowerCase().includes(q) ||
+            m.user_id.includes(q)
+          )
+        : members;
+      renderMemberRows(members, sortMembers(filtered, memberSortMode));
+    });
   });
 }
 
@@ -757,29 +795,30 @@ function renderMemberRows(allMembers, filtered) {
           ${m.is_blacklisted ? `<span class="mbadge mbadge-bl">Blacklisted</span>` : ""}
           ${m.post_limit_hours ? `<span class="mbadge mbadge-lim">Limit: ${m.post_limit_hours}h</span>` : ""}
         </div>
-        <button class="member-expand-btn" aria-label="Expand reviews">▼</button>
+        <button class="member-expand-btn" aria-label="Expand reviews">Reviews</button>
       </div>
       <div class="member-reviews" hidden>
-        <div class="review-loading">Loading reviews…</div>
+        <p class="review-loading">Loading reviews…</p>
       </div>
     </div>
   `).join("");
 
   list.querySelectorAll(".member-row").forEach(row => {
+    const header = row.querySelector(".member-row-header");
     const btn = row.querySelector(".member-expand-btn");
     const reviewsEl = row.querySelector(".member-reviews");
     let loaded = false;
 
-    btn.addEventListener("click", async () => {
+    header.addEventListener("click", async () => {
       const open = !reviewsEl.hidden;
       if (open) {
         reviewsEl.hidden = true;
-        btn.textContent = "▼";
+        btn.textContent = "Reviews";
         row.classList.remove("expanded");
         return;
       }
       reviewsEl.hidden = false;
-      btn.textContent = "▲";
+      btn.textContent = "Hide";
       row.classList.add("expanded");
 
       if (loaded) return;
@@ -794,12 +833,21 @@ function renderMemberRows(allMembers, filtered) {
         reviewsEl.innerHTML = reviews.map(r => `
           <div class="review-card">
             <div class="review-header">
-              <span class="review-stars">${starsDisplay(r.stars)}</span>
-              <span class="review-author">by ${escapeHtml(r.author_name)}</span>
-              <span class="review-time">${relativeTime(r.timestamp)}</span>
+              <div class="review-stars-wrap">
+                <span class="review-stars">${starsDisplay(r.stars)}</span>
+                <span class="review-score-num">${r.stars}/5</span>
+              </div>
+              <div class="review-meta">
+                <span class="review-author">${escapeHtml(r.author_name)}</span>
+                <span class="review-time">${relativeTime(r.timestamp)}</span>
+              </div>
             </div>
             ${r.comment ? `<p class="review-comment">${escapeHtml(r.comment)}</p>` : ""}
-            ${r.proof_url ? `<a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">📎 View Proof</a>` : ""}
+            ${r.proof_url ? `
+              <a class="review-proof" href="${escapeHtml(r.proof_url)}" target="_blank" rel="noopener noreferrer">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                View Proof
+              </a>` : ""}
           </div>
         `).join("");
       } catch {
@@ -857,48 +905,6 @@ function showToast(message, type = "info") {
   toast.textContent = message;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
-}
-
-// ── Starfield ──────────────────────────────────────────
-
-function initStarfield() {
-  const canvas = document.getElementById("starfield");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let stars = [];
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    stars = Array.from({ length: 160 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 1.2 + 0.1,
-      phase: Math.random() * Math.PI * 2,
-      speed: Math.random() * 0.5 + 0.15,
-      drift: (Math.random() - 0.5) * 0.06,
-    }));
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const t = Date.now() / 1000;
-    for (const s of stars) {
-      const a = 0.04 + 0.14 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
-      s.y -= 0.05;
-      s.x += s.drift;
-      if (s.y < -2) { s.y = canvas.height + 2; s.x = Math.random() * canvas.width; }
-      ctx.beginPath();
-      ctx.rect(s.x, s.y, s.r * 1.5, s.r * 1.5);
-      ctx.fillStyle = `rgba(220, 180, 100, ${a})`;
-      ctx.fill();
-    }
-    requestAnimationFrame(draw);
-  }
-
-  resize();
-  draw();
-  window.addEventListener("resize", resize);
 }
 
 // ── Bootstrap ──────────────────────────────────────────
