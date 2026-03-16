@@ -174,6 +174,7 @@ async function saveSettings() {
       min_reviews:             parseInt(v("setting-min-reviews")?.value ?? "1", 10),
       global_post_limit_hours: globalLimitVal ? parseInt(globalLimitVal, 10) : null,
       auto_delete_new:         v("setting-auto-delete")?.checked ?? false,
+      feedback_detection:      v("setting-feedback-detection")?.checked ?? false,
       alert_channel_id:        v("setting-alert-ch")?.value?.trim() || null,
       verified_role_id:        v("setting-verified-role")?.value?.trim() || null,
       audit_role_id:           v("setting-audit-role")?.value?.trim() || null,
@@ -202,14 +203,15 @@ function sectionTitle(text) {
 
 function renderSettingsTab(s) {
   const container = document.getElementById("tab-settings");
-  const trackOn      = s.track_identity !== false;
-  const proof        = s.proof_req || "required";
-  const autoDelete   = s.auto_delete_new === true;
-  const minReviews   = s.min_reviews ?? 1;
-  const globalLimit  = s.global_post_limit_hours ?? "";
-  const verifiedRole = s.verified_role_id ?? "";
-  const auditRole    = s.audit_role_id ?? "";
-  const alertCh      = s.alert_channel_id ?? "";
+  const trackOn         = s.track_identity !== false;
+  const proof           = s.proof_req || "required";
+  const autoDelete      = s.auto_delete_new === true;
+  const feedbackDetect  = s.feedback_detection === true;
+  const minReviews      = s.min_reviews ?? 1;
+  const globalLimit     = s.global_post_limit_hours ?? "";
+  const verifiedRole    = s.verified_role_id ?? "";
+  const auditRole       = s.audit_role_id ?? "";
+  const alertCh         = s.alert_channel_id ?? "";
 
   container.innerHTML = `
     <p class="tab-desc">Configure server-wide behaviour for The Jantleman.</p>
@@ -272,6 +274,19 @@ function renderSettingsTab(s) {
         </label>
       </div>
 
+      ${sectionTitle("Feedback Detection")}
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Feedback Detection</div>
+          <div class="setting-desc">Automatically detect when someone leaves actionable feedback in a monitored thread (powered by AI), then prompt the community to rate its quality. Off by default.</div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="tc-switch ${feedbackDetect ? "is-on" : ""}" id="feedback-detect-switch"><span class="tc-knob"></span></div>
+          <input type="checkbox" id="setting-feedback-detection" ${feedbackDetect ? "checked" : ""} hidden>
+        </label>
+      </div>
+
       ${sectionTitle("Alerts &amp; Channels")}
 
       <div class="setting-row">
@@ -318,6 +333,15 @@ function renderSettingsTab(s) {
   autoSw.addEventListener("click", () => {
     autoIn.checked = !autoIn.checked;
     autoSw.classList.toggle("is-on", autoIn.checked);
+    markDirty();
+  });
+
+  // Toggle: feedback detection
+  const feedSw = container.querySelector("#feedback-detect-switch");
+  const feedIn = container.querySelector("#setting-feedback-detection");
+  feedSw.addEventListener("click", () => {
+    feedIn.checked = !feedIn.checked;
+    feedSw.classList.toggle("is-on", feedIn.checked);
     markDirty();
   });
 
