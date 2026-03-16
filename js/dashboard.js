@@ -321,7 +321,8 @@ function renderSettingsTab(s) {
   // Toggle: identity tracking
   const trackSw = container.querySelector("#track-switch");
   const trackIn = container.querySelector("#setting-track-identity");
-  trackSw.addEventListener("click", () => {
+  trackSw.addEventListener("click", (e) => {
+    e.stopPropagation();
     trackIn.checked = !trackIn.checked;
     trackSw.classList.toggle("is-on", trackIn.checked);
     markDirty();
@@ -330,7 +331,8 @@ function renderSettingsTab(s) {
   // Toggle: auto-delete
   const autoSw = container.querySelector("#autodel-switch");
   const autoIn = container.querySelector("#setting-auto-delete");
-  autoSw.addEventListener("click", () => {
+  autoSw.addEventListener("click", (e) => {
+    e.stopPropagation();
     autoIn.checked = !autoIn.checked;
     autoSw.classList.toggle("is-on", autoIn.checked);
     markDirty();
@@ -339,7 +341,8 @@ function renderSettingsTab(s) {
   // Toggle: feedback detection
   const feedSw = container.querySelector("#feedback-detect-switch");
   const feedIn = container.querySelector("#setting-feedback-detection");
-  feedSw.addEventListener("click", () => {
+  feedSw.addEventListener("click", (e) => {
+    e.stopPropagation();
     feedIn.checked = !feedIn.checked;
     feedSw.classList.toggle("is-on", feedIn.checked);
     markDirty();
