@@ -224,10 +224,10 @@ function renderSettingsTab(s) {
           <div class="setting-label">Identity Tracking</div>
           <div class="setting-desc">Flag users who have changed their display name multiple times in the past 7 days.</div>
         </div>
-        <label class="toggle-wrap">
+        <div class="toggle-wrap">
           <div class="tc-switch ${trackOn ? "is-on" : ""}" id="track-switch"><span class="tc-knob"></span></div>
           <input type="checkbox" id="setting-track-identity" ${trackOn ? "checked" : ""} hidden>
-        </label>
+        </div>
       </div>
 
       <div class="setting-row">
@@ -268,10 +268,10 @@ function renderSettingsTab(s) {
           <div class="setting-label">Auto-Delete Posts from New Members</div>
           <div class="setting-desc">Automatically remove threads from users who have fewer reviews than the minimum threshold above. They'll receive a DM explaining why.</div>
         </div>
-        <label class="toggle-wrap">
+        <div class="toggle-wrap">
           <div class="tc-switch ${autoDelete ? "is-on" : ""}" id="autodel-switch"><span class="tc-knob"></span></div>
           <input type="checkbox" id="setting-auto-delete" ${autoDelete ? "checked" : ""} hidden>
-        </label>
+        </div>
       </div>
 
       ${sectionTitle("Feedback Detection")}
@@ -281,10 +281,10 @@ function renderSettingsTab(s) {
           <div class="setting-label">Feedback Detection</div>
           <div class="setting-desc">Automatically detect when someone leaves actionable feedback in a monitored thread (powered by AI), then prompt the community to rate its quality. Off by default.</div>
         </div>
-        <label class="toggle-wrap">
+        <div class="toggle-wrap">
           <div class="tc-switch ${feedbackDetect ? "is-on" : ""}" id="feedback-detect-switch"><span class="tc-knob"></span></div>
           <input type="checkbox" id="setting-feedback-detection" ${feedbackDetect ? "checked" : ""} hidden>
-        </label>
+        </div>
       </div>
 
       ${sectionTitle("Alerts &amp; Channels")}
