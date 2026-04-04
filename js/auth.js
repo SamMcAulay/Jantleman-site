@@ -4,15 +4,15 @@
 const AUTH_KEY = "jantleman_token";
 
 function getToken() {
-  return sessionStorage.getItem(AUTH_KEY);
+  return localStorage.getItem(AUTH_KEY);
 }
 
 function setToken(token) {
-  sessionStorage.setItem(AUTH_KEY, token);
+  localStorage.setItem(AUTH_KEY, token);
 }
 
 function clearToken() {
-  sessionStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_KEY);
 }
 
 function decodePayload(token) {
